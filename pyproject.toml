@@ -7,7 +7,9 @@ authors = [
     { name = "Mathijs de Bruin", email = "mathijs@mathijsfietst.nl" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic>=2.12.5",
+]
 
 [project.scripts]
 raggamuffin = "raggamuffin:main"
@@ -15,3 +17,11 @@ raggamuffin = "raggamuffin:main"
 [build-system]
 requires = ["uv_build>=0.7.22,<0.8"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+    "pre-commit-uv>=4.2.0",
+    "pyright>=1.1.407",
+    "ruff>=0.14.10",
+]
