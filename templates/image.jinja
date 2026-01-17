@@ -1,0 +1,18 @@
+<image>
+	<head>
+		{% include "document_headers.jinja" %}
+		<width>{{ width }}</width>
+		<height>{{  height }}</height>
+		<megapixels>{{ width * height / (1024*1024) }}</megapixels>
+	</head>
+
+	<body>
+		<description>
+			{% if description %}
+				{{ description }}
+			{% else %}
+				Unkown
+			{% endif %}
+		</description>
+	</body>
+</image>

@@ -1,0 +1,21 @@
+<textdocument>
+	{% include "metadata.jinja" %}
+
+	{% if creators %}
+		{% if len(creators) > 1 %}
+			<authors>
+				{% for author in creators %}
+					<author>{{ author }}</author>
+				{% endfor %}
+			</authors>
+		{% else %}
+			<author>{{ creators[0] }}</author>
+		{% endif %}
+	{% endif %}
+
+	{% if summary %}
+		<summary>{{ summary }}</summary>
+	{%  endif %}
+
+	<text>{{ text }}</text>
+</textdocument>

@@ -1,0 +1,10 @@
+<message>
+	<header>
+		{% include "metadata.jinja" %}
+	    <from>{{ sender }}</from>
+	    <to>{{ recipient }}</to>
+	    <date>{{ date }}</date>
+	</header>
+
+	<body>{{ text }}</body>
+</message>

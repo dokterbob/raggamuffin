@@ -1,0 +1,14 @@
+{% if metadata %}
+	<metadata>
+		{%  for key, value in metadata %}
+			<key>{{key}}</key>
+			<value>{{value}}</value>
+		{%  endfor %}
+	</metadata>
+{% endif %}
+{% if created %}
+	<date_created>{{ created }}</date_created>
+{% endif %}
+{% if modified %}
+	<date_modified>{{ modified }}</date_modified>
+{% endif %}

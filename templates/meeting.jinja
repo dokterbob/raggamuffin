@@ -1,0 +1,19 @@
+<meeting>
+	<date>{date}</date>
+	{% if participants %}
+		<participants>
+			{%  for particiapnt in participants %}
+				<participant>{{ participant }}</participant>
+			{%  endfor %}
+		</participants>
+	{%  endif %}
+	{%  include "metadata.jinja" %}
+	{% if summary %}
+		<summary>{{ summary }}</summary>
+	{%  endif %}
+	{% if transcript %}
+		<transcript>
+			{{ transcript }}
+		</transcript>
+	{% endif %}
+</meeting>
