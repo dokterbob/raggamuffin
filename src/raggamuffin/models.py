@@ -11,4 +11,4 @@ class Document(SQLModel, table=True):
 
 class Chunk(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    document_id: int = Field(foreign_key="document.id")
+    document_id: uuid.UUID = Field(foreign_key="document.id")
