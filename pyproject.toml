@@ -10,6 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "aiosqlite>=0.22.1",
     "jinja2>=3.1.6",
+    "numpy>=2.4.1",
     "pydantic>=2.12.5",
     "sqlalchemy[asyncio]>=2.0.45",
     "sqlmodel>=0.0.31",
@@ -32,3 +33,8 @@ dev = [
 
 [tool.ruff.lint]
 extend-select = ["I"]
+
+[tool.pyright]
+# SQLModel uses __tablename__ as a class attribute but SQLAlchemy stubs
+# expect it to be declared_attr. This is a known typing limitation.
+reportAssignmentType = "warning"

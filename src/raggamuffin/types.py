@@ -1,11 +1,17 @@
+"""Domain types for the raggamuffin application.
+
+This module defines Pydantic models for the API/domain layer.
+SQLModel persistence classes in models/ extend these types.
+"""
+
 import abc
 import uuid
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, ClassVar, Dict, Optional
 
 import jinja2
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 jinja_env = jinja2.Environment(
     loader=jinja2.PackageLoader("raggamuffin"),
@@ -13,129 +19,184 @@ jinja_env = jinja2.Environment(
     enable_async=True,
 )
 
-
-class Dated(BaseModel, abc.ABC):
-    created: Optional[datetime]
-    modified: Optional[datetime]
-
-
-Embedding = np.array[np.number]
+# Type aliases
+Embedding = np.ndarray
+MetaData = Dict[str, str | int | float]
 
 
-class Embeddable(BaseModel, abc.ABC):
-    sparse_embedding = Optional[Embedding]
-    dense_embedding = Optional[Embedding]
-
-    @abc.abstractmethod
-    def generate_embeddings(self):
-        pass
+# ============================================================================
+# Behavior Mixins
+# ============================================================================
 
 
-class TextEmbeddable(Embeddable, abc.ABC):
-    template: jinja2.Template
+class DatedMixin(BaseModel):
+    """Mixin for created/modified timestamps."""
 
-    summary: Optional[str]
+    created: Optional[datetime] = None
+    modified: Optional[datetime] = None
+
+
+class EmbeddableMixin(BaseModel):
+    """Mixin for sparse/dense embeddings."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    sparse_embedding: Optional[Embedding] = None
+    dense_embedding: Optional[Embedding] = None
+
+    def generate_embeddings(self) -> None:
+        raise NotImplementedError
+
+
+class TextEmbeddableMixin(BaseModel):
+    """Mixin for text content that can be embedded and summarized."""
+
+    text: str
+    summary: Optional[str] = None
 
     def get_text(self) -> str:
-        context = self.get_context()
-        return self.template.render(context)
+        return self.text
 
     def get_context(self) -> Dict[str, Any]:
         return dict(self)
 
-    def generate_embeddings(self):
+    def generate_summary(self) -> None:
         raise NotImplementedError
 
-    def generate_summary(self):
-        raise NotImplementedError
+
+class EventMixin(BaseModel):
+    """Mixin for event types with a date."""
+
+    event_date: datetime
+
+
+# ============================================================================
+# Reference Types
+# ============================================================================
 
 
 class SourceType(BaseModel):
+    """Type/category of a source."""
+
     uuid: uuid.UUID
     slug: str
 
 
 class Source(BaseModel):
+    """A reference to a source of data."""
+
     uuid: uuid.UUID
     type: SourceType
 
 
-class Entity(Dated, Embeddable, abc.ABC):
+# ============================================================================
+# Entity Types
+# ============================================================================
+
+
+class Entity(DatedMixin, EmbeddableMixin, BaseModel, abc.ABC):
+    """Abstract base for Person and Organization."""
+
     uuid: uuid.UUID
     name: str
-    sources: set[Source]
+    sources: set[Source] = set()
 
 
 class Person(Entity):
+    """A person entity."""
+
     pass
 
 
 class Organization(Entity):
-    persons: set[Person]
-    parents: "set[Organization]"
-    children: "set[Organization]"
+    """An organization entity with hierarchical relationships."""
+
+    persons: set[Person] = set()
+    parents: "set[Organization]" = set()
+    children: "set[Organization]" = set()
 
 
-MetaData = Dict[str, str | int | float]
+# ============================================================================
+# Document Types
+# ============================================================================
 
 
-class Document(Dated, Embeddable, abc.ABC):
+class Document(DatedMixin, EmbeddableMixin, BaseModel, abc.ABC):
+    """Abstract base for all documents."""
+
     uuid: uuid.UUID
     source: Source
-    metadata: MetaData
-    creators: set[Person]
+    metadata: MetaData = {}
+    creators: set[Person] = set()
 
 
-class TextDocument(Document, TextEmbeddable):
-    text: str
+class TextDocument(Document, TextEmbeddableMixin):
+    """A text-based document."""
 
-    def get_text(self) -> str:
-        return self.text
-
-    template = jinja_env.get_template("text_document.jinja")
+    template: ClassVar[jinja2.Template] = jinja_env.get_template("text_document.jinja")
 
 
 class Image(Document):
-    width: Optional[int]
-    height: Optional[int]
+    """An image document."""
+
+    width: Optional[int] = None
+    height: Optional[int] = None
     data: bytes
 
-    template = jinja_env.get_template("image.jinja")
-
-    def generate_embeddings(self):
-        raise NotImplementedError
+    template: ClassVar[jinja2.Template] = jinja_env.get_template("image.jinja")
 
 
-class Event(Dated, abc.ABC):
-    date: datetime
+# ============================================================================
+# Event Types (compose mixins to avoid diamond inheritance)
+# ============================================================================
 
 
-class Message(Event, TextDocument):
+class Message(DatedMixin, EmbeddableMixin, TextEmbeddableMixin, EventMixin, BaseModel):
+    """A message event - composes mixins instead of diamond inheritance."""
+
+    uuid: uuid.UUID
+    source: Source
+    metadata: MetaData = {}
+    creators: set[Person] = set()
     sender: Person
     recipient: Person
     content: str
 
+    template: ClassVar[jinja2.Template] = jinja_env.get_template("message.jinja")
+
     def __str__(self) -> str:
-        return f"Message from {self.sender} to {self.recipient} on {self.date}"
-
-    template = jinja_env.get_template("message.jinja")
+        return f"Message from {self.sender} to {self.recipient} on {self.event_date}"
 
 
-class Meeting(Event, TextDocument):
-    transcript: Optional[str]
-    participants: set[Person]
+class Meeting(DatedMixin, EmbeddableMixin, TextEmbeddableMixin, EventMixin, BaseModel):
+    """A meeting event - composes mixins instead of diamond inheritance."""
 
-    template = jinja_env.get_template("meeting.jinja")
+    uuid: uuid.UUID
+    source: Source
+    metadata: MetaData = {}
+    creators: set[Person] = set()
+    transcript: Optional[str] = None
+    participants: set[Person] = set()
+
+    template: ClassVar[jinja2.Template] = jinja_env.get_template("meeting.jinja")
+
+
+# ============================================================================
+# Document Collections
+# ============================================================================
 
 
 class DocumentSet(BaseModel, abc.ABC):
-    uuid: uuid.UUID
-    set: Document
+    """Abstract base for document collections."""
 
-    template = jinja_env.get_template("document_set.jinja")
+    uuid: uuid.UUID
+    documents: set[Document] = set()
+
+    template: ClassVar[jinja2.Template] = jinja_env.get_template("document_set.jinja")
 
 
 class Conversation(DocumentSet):
+    """A conversation is a time-bounded document set."""
+
     start_date: datetime
     end_date: datetime
-    """Start and end creation time"""
