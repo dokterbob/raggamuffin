@@ -110,7 +110,7 @@ class Event(Dated, abc.ABC):
     date: datetime
 
 
-class Message(Event, TextDocument, TextEmbeddable):
+class Message(Event, TextDocument):
     sender: Person
     recipient: Person
     content: str
@@ -121,7 +121,7 @@ class Message(Event, TextDocument, TextEmbeddable):
     template = jinja_env.get_template("message.jinja")
 
 
-class Meeting(Event, Document, TextEmbeddable):
+class Meeting(Event, TextDocument):
     transcript: Optional[str]
     participants: set[Person]
 
