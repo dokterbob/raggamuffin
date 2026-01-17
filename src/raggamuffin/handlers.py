@@ -22,7 +22,7 @@ class DocumentHandler:
             try:
                 text = path.read_text()
             except UnicodeDecodeError as e:
-                logger.warn("Skipping %s due to %e", path, e)
+                logger.warning("Skipping %s due to %e", path, e)
                 continue
 
             yield Document(title=str(path), text=text)
